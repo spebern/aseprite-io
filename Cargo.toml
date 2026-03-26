@@ -1,0 +1,31 @@
+[package]
+name = "aseprite-io"
+version = "0.1.0"
+edition = "2024"
+description = "Read and write Aseprite .ase/.aseprite files"
+license = "MIT OR Apache-2.0"
+keywords = ["aseprite", "sprite", "pixel-art", "gamedev", "tilemap"]
+categories = ["game-development", "graphics", "parser-implementations"]
+repository = "https://github.com/spebern/aseprite-io"
+rust-version = "1.87"
+
+[lib]
+name = "aseprite"
+
+[dependencies]
+flate2 = "1"
+image = { version = "0.25", optional = true, default-features = false }
+tiny-skia = { version = "0.11", optional = true }
+
+[features]
+default = []
+image = ["dep:image"]
+tiny-skia = ["dep:tiny-skia"]
+
+[dev-dependencies]
+aseprite-loader = "0.4.2"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "parse"
+harness = false
