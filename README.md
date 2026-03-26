@@ -70,9 +70,9 @@ std::fs::write("output.aseprite", {
 
 | Crate | Read | Write | Tilemaps | User data |
 |-------|:----:|:-----:|:--------:|:---------:|
-| **aseprite-io** | Yes | **Yes** | Yes | Yes |
-| asefile | Yes | No | Yes | Partial |
-| aseprite-loader | Yes | No | No | No |
+| [**aseprite-io**](https://crates.io/crates/aseprite-io) | Yes | **Yes** | Yes | Yes |
+| [asefile](https://crates.io/crates/asefile) | Yes | No | Yes | Partial |
+| [aseprite-loader](https://crates.io/crates/aseprite-loader) | Yes | No | No | No |
 
 ## License
 
