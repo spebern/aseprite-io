@@ -387,6 +387,56 @@ fn image_crate_conversion() {
     assert_eq!(back.get_pixel(0, 0), &image::Rgba([255, 0, 0, 255]));
 }
 
+#[cfg(feature = "tiny-skia")]
+#[test]
+fn tiny_skia_conversion() {
+    use tiny_skia::Pixmap;
+
+    let mut pixmap = Pixmap::new(4, 4).unwrap();
+    for pixel in pixmap.pixels_mut() {
+        *pixel = tiny_skia::PremultipliedColorU8::from_rgba(128, 0, 0, 255).unwrap();
+    }
+
+    let pixels: Pixels = pixmap.into();
+    assert_eq!(pixels.width, 4);
+    assert_eq!(pixels.height, 4);
+    assert_eq!(pixels.data[0], 128);
+    assert_eq!(pixels.data[3], 255);
+
+    let back: Pixmap = pixels.try_into().unwrap();
+    assert_eq!(back.width(), 4);
+    assert_eq!(back.pixel(0, 0).unwrap().red(), 128);
+}
+
+#[cfg(feature = "tiny-skia")]
+#[test]
+fn tiny_skia_premultiplied_alpha_round_trip() {
+    use tiny_skia::Pixmap;
+
+    let mut pixmap = Pixmap::new(1, 1).unwrap();
+    *pixmap.pixels_mut().first_mut().unwrap() =
+        tiny_skia::PremultipliedColorU8::from_rgba(64, 0, 0, 128).unwrap();
+
+    let pixels: Pixels = pixmap.into();
+    assert_eq!(pixels.data[0], 128); // straight: 64*255/128 ≈ 128
+    assert_eq!(pixels.data[3], 128);
+
+    let back: Pixmap = pixels.try_into().unwrap();
+    assert_eq!(back.pixel(0, 0).unwrap().red(), 64); // back to premultiplied
+}
+
+#[cfg(feature = "tiny-skia")]
+#[test]
+fn tiny_skia_ref_conversion() {
+    use tiny_skia::Pixmap;
+
+    let pixmap = Pixmap::new(2, 2).unwrap();
+    let pixels: Pixels = (&pixmap).into();
+    assert_eq!(pixels.width, 2);
+    assert_eq!(pixels.height, 2);
+    assert_eq!(pixels.data.len(), 2 * 2 * 4);
+}
+
 // --- v0.2 feature tests: User Data ---
 
 #[test]
