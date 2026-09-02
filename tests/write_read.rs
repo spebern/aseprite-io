@@ -1382,10 +1382,52 @@ fn add_group_with_options() {
     let _child = file.add_layer_in("Child", group);
     file.add_frame(100);
 
+    file.set_flags(file.flags() | 3);
+
     let read = write_and_read(&file);
+    assert_eq!(read.flags() & 3, 3);
     assert_eq!(read.layers()[0].opacity, 128);
     assert!(!read.layers()[0].visible);
     assert_eq!(read.layers()[1].parent, Some(0));
+}
+
+#[test]
+fn explicit_group_blend_mode_can_set_header_flag() {
+    let mut file = AsepriteFile::new(4, 4, ColorMode::Rgba);
+    file.add_group_with(
+        "G",
+        LayerOptions {
+            blend_mode: BlendMode::Multiply,
+            ..Default::default()
+        },
+    );
+    file.add_frame(100);
+    file.set_flags(file.flags() | 2);
+
+    let read = write_and_read(&file);
+    assert_eq!(read.flags() & 2, 2);
+    assert_eq!(read.layers()[0].blend_mode, BlendMode::Multiply);
+}
+
+#[test]
+fn explicit_default_group_properties_can_set_header_flag() {
+    let mut file = AsepriteFile::new(4, 4, ColorMode::Rgba);
+    file.add_group_with(
+        "G",
+        LayerOptions {
+            opacity: 255,
+            blend_mode: BlendMode::Normal,
+            ..Default::default()
+        },
+    );
+    file.add_frame(100);
+
+    file.set_flags(file.flags() | 2);
+
+    let read = write_and_read(&file);
+    assert_eq!(read.flags() & 2, 2);
+    assert_eq!(read.layers()[0].opacity, 255);
+    assert_eq!(read.layers()[0].blend_mode, BlendMode::Normal);
 }
 
 #[test]
