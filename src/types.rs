@@ -739,9 +739,17 @@ impl AsepriteFile {
     pub fn color_mode(&self) -> ColorMode {
         self.color_mode
     }
-    /// Returns the raw header flags.
+    /// Returns the raw file header flags.
+    ///
+    /// Bit 0 (value 1) indicates that layer opacity is valid. Bit 1 (value 2)
+    /// indicates that group blend mode and opacity are valid. The reader
+    /// preserves raw layer fields regardless of these flags.
     pub fn flags(&self) -> u32 {
         self.flags
+    }
+    /// Sets the raw file header flags without changing any other file data.
+    pub fn set_flags(&mut self, flags: u32) {
+        self.flags = flags;
     }
     pub(crate) fn deprecated_speed(&self) -> u16 {
         self.deprecated_speed
@@ -1243,9 +1251,6 @@ impl AsepriteFile {
     }
 
     // --- Internal setters for reader ---
-    pub(crate) fn set_flags(&mut self, flags: u32) {
-        self.flags = flags;
-    }
     pub(crate) fn set_deprecated_speed(&mut self, speed: u16) {
         self.deprecated_speed = speed;
     }
