@@ -377,6 +377,23 @@ fn color_profile_srgb() {
 }
 
 #[test]
+fn grid_settings() {
+    let mut file = AsepriteFile::new(64, 32, ColorMode::Rgba);
+    file.set_grid(GridInfo {
+        x: 5,
+        y: 3,
+        width: 32,
+        height: 32,
+    });
+
+    let out = write_and_read(&file);
+    assert_eq!(out.grid().x, 5);
+    assert_eq!(out.grid().y, 3);
+    assert_eq!(out.grid().width, 32);
+    assert_eq!(out.grid().height, 32);
+}
+
+#[test]
 fn empty_frame_no_cels() {
     let mut file = AsepriteFile::new(4, 4, ColorMode::Rgba);
     let layer = file.add_layer("Layer");
