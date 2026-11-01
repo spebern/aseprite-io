@@ -757,6 +757,10 @@ impl AsepriteFile {
     pub fn grid(&self) -> &GridInfo {
         &self.grid
     }
+    /// Sets the grid overlay settings.
+    pub fn set_grid(&mut self, grid: GridInfo) {
+        self.grid = grid;
+    }
     /// Returns the color profile, if set.
     pub fn color_profile(&self) -> &Option<ColorProfile> {
         &self.color_profile
@@ -1254,9 +1258,6 @@ impl AsepriteFile {
     }
     pub(crate) fn set_pixel_ratio(&mut self, ratio: (u8, u8)) {
         self.pixel_ratio = ratio;
-    }
-    pub(crate) fn set_grid(&mut self, grid: GridInfo) {
-        self.grid = grid;
     }
     pub(crate) fn push_legacy_mask(&mut self, mask: LegacyMask) {
         self.legacy_masks.push(mask);
