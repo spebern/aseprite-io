@@ -96,9 +96,8 @@ fn writer_resolve_user_data(file: &AsepriteFile, last: &mut WriterLastEntity) ->
             .and_then(|l| l.user_data.clone())
             .unwrap_or_default(),
         WriterLastEntity::Cel(layer_idx, frame_idx) => file
-            .cels_iter()
-            .find(|&(&(l, f), _)| l == *layer_idx && f == *frame_idx)
-            .and_then(|(_, c)| c.user_data.clone())
+            .cel_at(*layer_idx, *frame_idx)
+            .and_then(|c| c.user_data.clone())
             .unwrap_or_default(),
         WriterLastEntity::TagSequence(next_tag) => {
             let tag_idx = *next_tag;
@@ -163,11 +162,16 @@ pub fn write_to<W: Write>(file: &AsepriteFile, mut writer: W) -> Result<(), Asep
 
     let mut frame_buffers: Vec<Vec<u8>> = Vec::new();
 
+    // Group per-frame data once up front. Filtering the whole file for every
+    // frame made writing quadratic in the number of frames and cels.
+    let chunk_order_by_frame = file.chunk_order_by_frame();
+    let cels_by_frame = file.cels_by_frame();
+    let unknown_by_frame = file.unknown_chunks_by_frame();
+
     for frame_index in 0..file.frames().len() {
         let mut chunks: Vec<Vec<u8>> = Vec::new();
 
-        let chunk_order: Vec<ChunkOrderEntry> =
-            file.chunk_order_for_frame(frame_index).cloned().collect();
+        let chunk_order = &chunk_order_by_frame[frame_index];
 
         if chunk_order.is_empty() {
             // Programmatically created file -- use default order
@@ -238,16 +242,14 @@ pub fn write_to<W: Write>(file: &AsepriteFile, mut writer: W) -> Result<(), Asep
                     emit_user_data_chunk(&mut chunks, &slice.user_data)?;
                 }
             }
-            for (&(layer_idx, frame_idx), cel) in file.cels_iter() {
-                if frame_idx == frame_index {
-                    chunks.push(wrap_chunk(0x2005, &encode_cel_chunk(cel, layer_idx)?));
-                    if let Some(extra) = &cel.extra {
-                        chunks.push(wrap_chunk(0x2006, &encode_cel_extra_chunk(extra)?));
-                    }
-                    emit_user_data_chunk(&mut chunks, &cel.user_data)?;
+            for &(layer_idx, cel) in &cels_by_frame[frame_index] {
+                chunks.push(wrap_chunk(0x2005, &encode_cel_chunk(cel, layer_idx)?));
+                if let Some(extra) = &cel.extra {
+                    chunks.push(wrap_chunk(0x2006, &encode_cel_extra_chunk(extra)?));
                 }
+                emit_user_data_chunk(&mut chunks, &cel.user_data)?;
             }
-            for uc in file.unknown_chunks_for_frame(frame_index) {
+            for uc in &unknown_by_frame[frame_index] {
                 chunks.push(wrap_chunk(uc.chunk_type, &uc.data));
             }
         } else {
@@ -257,9 +259,9 @@ pub fn write_to<W: Write>(file: &AsepriteFile, mut writer: W) -> Result<(), Asep
             let mut tileset_emit_counter = 0usize;
             let mut unknown_emit_counter = 0usize;
             let mut writer_last_entity = WriterLastEntity::None;
-            let unknown_for_frame: Vec<_> = file.unknown_chunks_for_frame(frame_index).collect();
+            let unknown_for_frame = &unknown_by_frame[frame_index];
 
-            for entry in &chunk_order {
+            for entry in chunk_order {
                 match entry.chunk_type {
                     0x2004 => {
                         if layer_emit_counter < file.layers().len() {
@@ -273,10 +275,7 @@ pub fn write_to<W: Write>(file: &AsepriteFile, mut writer: W) -> Result<(), Asep
                     }
                     0x2005 => {
                         if let Some(li) = entry.layer_index
-                            && let Some(cel) = file
-                                .cels_iter()
-                                .find(|&(&(l, f), _)| l == li && f == frame_index)
-                                .map(|(_, c)| c)
+                            && let Some(cel) = file.cel_at(li, frame_index)
                         {
                             chunks.push(wrap_chunk(0x2005, &encode_cel_chunk(cel, li)?));
                             writer_last_entity = WriterLastEntity::Cel(li, frame_index);
@@ -284,10 +283,7 @@ pub fn write_to<W: Write>(file: &AsepriteFile, mut writer: W) -> Result<(), Asep
                     }
                     0x2006 => {
                         if let WriterLastEntity::Cel(li, fi) = &writer_last_entity
-                            && let Some(cel) = file
-                                .cels_iter()
-                                .find(|&(&(l, f), _)| l == *li && f == *fi)
-                                .map(|(_, c)| c)
+                            && let Some(cel) = file.cel_at(*li, *fi)
                             && let Some(extra) = &cel.extra
                         {
                             chunks.push(wrap_chunk(0x2006, &encode_cel_extra_chunk(extra)?));
