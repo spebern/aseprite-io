@@ -1324,16 +1324,28 @@ impl AsepriteFile {
         }
         self.palette[index] = color;
     }
-    pub(crate) fn cels_iter(&self) -> impl Iterator<Item = (&(usize, usize), &Cel)> {
-        self.cels.iter()
+    pub(crate) fn cel_at(&self, layer_index: usize, frame_index: usize) -> Option<&Cel> {
+        self.cels.get(&(layer_index, frame_index))
     }
-    pub(crate) fn unknown_chunks_for_frame(
-        &self,
-        frame_index: usize,
-    ) -> impl Iterator<Item = &UnknownChunk> {
-        self.unknown_chunks
-            .iter()
-            .filter(move |uc| uc.frame_index == frame_index)
+    /// Cels grouped by frame index, each group in layer order, built in a single pass.
+    pub(crate) fn cels_by_frame(&self) -> Vec<Vec<(usize, &Cel)>> {
+        let mut groups = vec![Vec::new(); self.frames.len()];
+        for (&(layer_index, frame_index), cel) in &self.cels {
+            if let Some(group) = groups.get_mut(frame_index) {
+                group.push((layer_index, cel));
+            }
+        }
+        groups
+    }
+    /// Unknown chunks grouped by frame index, built in a single pass.
+    pub(crate) fn unknown_chunks_by_frame(&self) -> Vec<Vec<&UnknownChunk>> {
+        let mut groups = vec![Vec::new(); self.frames.len()];
+        for uc in &self.unknown_chunks {
+            if let Some(group) = groups.get_mut(uc.frame_index) {
+                group.push(uc);
+            }
+        }
+        groups
     }
 
     pub(crate) fn push_chunk_order(
@@ -1349,12 +1361,14 @@ impl AsepriteFile {
         });
     }
 
-    pub(crate) fn chunk_order_for_frame(
-        &self,
-        frame_index: usize,
-    ) -> impl Iterator<Item = &ChunkOrderEntry> {
-        self.chunk_order
-            .iter()
-            .filter(move |e| e.frame_index == frame_index)
+    /// Recorded chunk order grouped by frame index, built in a single pass.
+    pub(crate) fn chunk_order_by_frame(&self) -> Vec<Vec<&ChunkOrderEntry>> {
+        let mut groups = vec![Vec::new(); self.frames.len()];
+        for entry in &self.chunk_order {
+            if let Some(group) = groups.get_mut(entry.frame_index) {
+                group.push(entry);
+            }
+        }
+        groups
     }
 }
